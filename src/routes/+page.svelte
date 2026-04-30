@@ -1,4 +1,6 @@
 <script lang="ts">
+	import { onMount } from 'svelte';
+
 	const letterSections = [
 		{
 			key: 'arrival',
@@ -52,7 +54,81 @@
 		}
 	] as const;
 
-	const leadImage = letterSections.find((section) => section.key === 'backyard') ?? letterSections[0];
+	type SectionKey = (typeof letterSections)[number]['key'];
+
+	let activeSectionKey = $state<SectionKey>(letterSections[0].key);
+	const activeSection = $derived(
+		letterSections.find((section) => section.key === activeSectionKey) ?? letterSections[0]
+	);
+
+	function splitReadableText(paragraph: string) {
+		return paragraph.split(/(\s+)/).filter(Boolean);
+	}
+
+	function isSectionKey(value: string | undefined): value is SectionKey {
+		return letterSections.some((section) => section.key === value);
+	}
+
+	function clamp(value: number) {
+		return Math.min(Math.max(value, 0), 1);
+	}
+
+	onMount(() => {
+		const words = Array.from(document.querySelectorAll<HTMLElement>('.read-word'));
+		const sections = Array.from(document.querySelectorAll<HTMLElement>('[data-reading-section]'));
+		const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
+		let frame = 0;
+
+		const updateReadingState = () => {
+			frame = 0;
+			const readingLine = window.innerHeight / 3;
+			let nextActiveKey = sections[0]?.dataset.readingSection;
+
+			for (const section of sections) {
+				const bounds = section.getBoundingClientRect();
+				const key = section.dataset.readingSection;
+
+				if (!key) continue;
+				if (bounds.bottom < readingLine) {
+					nextActiveKey = key;
+					continue;
+				}
+
+				nextActiveKey = key;
+				break;
+			}
+
+			if (isSectionKey(nextActiveKey) && nextActiveKey !== activeSectionKey) {
+				activeSectionKey = nextActiveKey;
+			}
+
+			for (const word of words) {
+				const bounds = word.getBoundingClientRect();
+				const progress = reducedMotion.matches
+					? Number(bounds.bottom <= readingLine)
+					: clamp((readingLine - bounds.top) / Math.max(bounds.height, 1));
+
+				word.style.setProperty('--word-progress', progress.toFixed(3));
+			}
+		};
+
+		const queueReadingUpdate = () => {
+			if (frame) return;
+			frame = window.requestAnimationFrame(updateReadingState);
+		};
+
+		updateReadingState();
+		window.addEventListener('scroll', queueReadingUpdate, { passive: true });
+		window.addEventListener('resize', queueReadingUpdate);
+		reducedMotion.addEventListener('change', queueReadingUpdate);
+
+		return () => {
+			if (frame) window.cancelAnimationFrame(frame);
+			window.removeEventListener('scroll', queueReadingUpdate);
+			window.removeEventListener('resize', queueReadingUpdate);
+			reducedMotion.removeEventListener('change', queueReadingUpdate);
+		};
+	});
 </script>
 
 <svelte:head>
@@ -67,21 +143,30 @@
 	<section class="letter-page" aria-label="Seller letter and property details">
 		<article class="letter" aria-label="Seller letter">
 			{#each letterSections as section}
-				<section
-					class="letter-section"
-					data-reading-section={section.key}
-					data-image-src={section.image}
-				>
+					<section class="letter-section" data-reading-section={section.key}>
 					{#each section.paragraphs as paragraph}
-						<p class:signature={paragraph.startsWith('—')}>{paragraph}</p>
+							<p class:signature={paragraph.startsWith('—')}>
+								{#each splitReadableText(paragraph) as token}
+									{#if token.trim()}
+										<span class="read-word">{token}</span>
+									{:else}{token}{/if}
+								{/each}
+							</p>
 					{/each}
 				</section>
 			{/each}
 		</article>
 
 		<aside class="visual-column" aria-label="Property photo and open house details">
-			<figure class="feature-photo" data-active-image={leadImage.key}>
-				<img src={leadImage.image} alt={leadImage.imageLabel} />
+				<figure class="feature-photo" data-active-image={activeSection.key}>
+					{#each letterSections as section}
+						<img
+							class:active-photo={section.key === activeSectionKey}
+							src={section.image}
+							alt={section.key === activeSectionKey ? section.imageLabel : ''}
+							aria-hidden={section.key !== activeSectionKey}
+						/>
+					{/each}
 			</figure>
 
 			<dl class="property-details" aria-label="Open house details">
