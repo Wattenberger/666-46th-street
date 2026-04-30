@@ -2,7 +2,6 @@
 	const letterSections = [
 		{
 			key: 'arrival',
-			eyebrow: '01 / The first feeling',
 			image: '/listing/front-exterior.jpg',
 			imageLabel: 'A first look at the front garden and entry',
 			paragraphs: [
@@ -12,7 +11,6 @@
 		},
 		{
 			key: 'family',
-			eyebrow: '02 / Room for every season',
 			image: '/listing/flexible-cottage.jpg',
 			imageLabel: 'The cottage that made the property live flexibly',
 			paragraphs: [
@@ -21,7 +19,6 @@
 		},
 		{
 			key: 'workshop',
-			eyebrow: '03 / Work, weather, and the city',
 			image: '/listing/workshop-office.jpg',
 			imageLabel: 'A work-from-home retreat connected to the patio',
 			paragraphs: [
@@ -30,7 +27,6 @@
 		},
 		{
 			key: 'neighborhood',
-			eyebrow: '04 / A calm block, close to everything',
 			image: '/listing/evening-exterior.jpg',
 			imageLabel: 'Evening light on a quiet Oakland block',
 			paragraphs: [
@@ -39,7 +35,6 @@
 		},
 		{
 			key: 'backyard',
-			eyebrow: '05 / The place that changed everything',
 			image: '/listing/backyard-retreat.jpg',
 			imageLabel: 'Backyard greenery made for slow evenings',
 			paragraphs: [
@@ -48,7 +43,6 @@
 		},
 		{
 			key: 'goodbye',
-			eyebrow: '06 / A home, again',
 			image: '/listing/front-rooms.jpg',
 			imageLabel: 'Interior rooms with warm natural light',
 			paragraphs: [
@@ -58,42 +52,19 @@
 		}
 	] as const;
 
-	const leadImage = letterSections[0];
+	const leadImage = letterSections.find((section) => section.key === 'backyard') ?? letterSections[0];
 </script>
 
 <svelte:head>
 	<title>666 46th St</title>
 	<meta
 		name="description"
-		content="A refined editorial seller letter experience for 666 46th St in Oakland."
+		content="A seller letter for the next owner of 666 46th St in Oakland."
 	/>
 </svelte:head>
 
 <main class="site-shell">
-	<section class="hero editorial-grid" aria-labelledby="page-title">
-		<header class="masthead">
-			<span>666 46th St</span>
-			<span>Oakland, California</span>
-		</header>
-
-		<div class="intro-copy">
-			<p class="kicker">Seller letter</p>
-			<h1 id="page-title">A property that first lands as a feeling.</h1>
-			<p class="lede">
-				A personal note from the sellers, set as a quiet editorial walk through the house,
-				the cottage, the workshop, and the garden that made 666 46th St feel like home.
-			</p>
-		</div>
-
-		<aside class="listing-card" aria-label="Open house details">
-			<p class="listing-card__label">Now on the market</p>
-			<p class="listing-card__address">666 46th St</p>
-			<p>Open house this Saturday and Sunday</p>
-			<p class="listing-card__time">2 - 4:30</p>
-		</aside>
-	</section>
-
-	<section class="story editorial-grid" aria-label="Seller letter and property photography">
+	<section class="letter-page" aria-label="Seller letter and property details">
 		<article class="letter" aria-label="Seller letter">
 			{#each letterSections as section}
 				<section
@@ -101,7 +72,6 @@
 					data-reading-section={section.key}
 					data-image-src={section.image}
 				>
-					<p class="section-eyebrow">{section.eyebrow}</p>
 					{#each section.paragraphs as paragraph}
 						<p class:signature={paragraph.startsWith('—')}>{paragraph}</p>
 					{/each}
@@ -109,25 +79,24 @@
 			{/each}
 		</article>
 
-		<aside class="photo-rail" aria-label="Property photos keyed to the letter">
+		<aside class="visual-column" aria-label="Property photo and open house details">
 			<figure class="feature-photo" data-active-image={leadImage.key}>
 				<img src={leadImage.image} alt={leadImage.imageLabel} />
-				<figcaption>{leadImage.imageLabel}</figcaption>
 			</figure>
 
-			<div class="photo-index" aria-label="Letter photo sequence">
-				{#each letterSections as section}
-					<figure class="photo-chip" data-image-key={section.key}>
-						<img src={section.image} alt={section.imageLabel} loading="lazy" />
-						<figcaption>{section.eyebrow.replace(/^[0-9]+ \/ /, '')}</figcaption>
-					</figure>
-				{/each}
-			</div>
+			<dl class="property-details" aria-label="Open house details">
+				<div>
+					<dt>Address</dt>
+					<dd>666 46th St</dd>
+					<dd>Oakland, California</dd>
+				</div>
+
+				<div>
+					<dt>Open House</dt>
+					<dd>Saturday and Sunday</dd>
+					<dd>2–4:30</dd>
+				</div>
+			</dl>
 		</aside>
 	</section>
-
-	<footer class="page-footer editorial-grid">
-		<p>666 46th St</p>
-		<p>Open house this Saturday and Sunday, 2 - 4:30</p>
-	</footer>
 </main>
