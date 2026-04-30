@@ -17,20 +17,24 @@
 	const readingLineRatio = 1 / 3;
 	const lineTopTolerance = 2;
 
-	const getInlinePhotoForParagraph = (
+	const getInlinePhotosForParagraph = (
 		sectionKey: string,
 		paragraphIndex: number
-	): PhotoTrigger | undefined => {
-		const paragraphTriggers = new Map<string, PhotoTrigger>();
+	): PhotoTrigger[] => {
+		const seenImages = new Set<string>();
+		const paragraphTriggers: PhotoTrigger[] = [];
+		const sortedParagraphTriggers = photoTriggers
+			.filter((trigger) => trigger.sectionKey === sectionKey && trigger.paragraphIndex === paragraphIndex)
+			.sort((first, second) => first.tokenIndex - second.tokenIndex);
 
-		for (const trigger of photoTriggers) {
-			if (trigger.sectionKey !== sectionKey || trigger.paragraphIndex !== paragraphIndex) continue;
+		for (const trigger of sortedParagraphTriggers) {
+			if (seenImages.has(trigger.image)) continue;
 
-			paragraphTriggers.delete(trigger.image);
-			paragraphTriggers.set(trigger.image, trigger);
+			seenImages.add(trigger.image);
+			paragraphTriggers.push(trigger);
 		}
 
-		return Array.from(paragraphTriggers.values()).at(-1);
+		return paragraphTriggers;
 	};
 
 	type WordSnapshot = {
@@ -161,15 +165,17 @@
 									{:else}{token}{/if}
 								{/each}
 							</p>
-							{@const inlineTrigger = getInlinePhotoForParagraph(section.key, paragraphIndex)}
-							{#if inlineTrigger}
+							{@const inlineTriggers = getInlinePhotosForParagraph(section.key, paragraphIndex)}
+							{#if inlineTriggers.length}
 								<figure class="mobile-inline-photo">
-									<img
-										src={inlineTrigger.image}
-										alt={inlineTrigger.imageLabel}
-										loading="lazy"
-										decoding="async"
-									/>
+									{#each inlineTriggers as inlineTrigger (inlineTrigger.image)}
+										<img
+											src={inlineTrigger.image}
+											alt={inlineTrigger.imageLabel}
+											loading="lazy"
+											decoding="async"
+										/>
+									{/each}
 								</figure>
 							{/if}
 					{/each}

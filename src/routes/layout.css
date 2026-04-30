@@ -240,7 +240,8 @@ img {
   }
 
   .mobile-inline-photo {
-    display: block;
+    display: grid;
+    gap: clamp(0.875rem, 4vw, 1.5rem);
     margin: clamp(1.5rem, 7vw, 2.75rem) 0 clamp(1.75rem, 8vw, 3.25rem);
     overflow: hidden;
   }
