@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-labelledby="title desc">
+	<title id="title">666 46th Street icon</title>
+	<desc id="desc">A dark green luxury real-estate mark with a refined roofline and 666 monogram.</desc>
+	<defs>
+		<linearGradient id="background" x1="11" y1="8" x2="54" y2="58" gradientUnits="userSpaceOnUse">
+			<stop stop-color="#2b3823" />
+			<stop offset="1" stop-color="#11180e" />
+		</linearGradient>
+	</defs>
+	<rect width="64" height="64" rx="14" fill="url(#background)" />
+	<path d="M14 32.5 32 18l18 14.5" fill="none" stroke="#f3ead1" stroke-width="4.5" stroke-linecap="round" stroke-linejoin="round" />
+	<path d="M21 32.5v15h22v-15" fill="none" stroke="#d6b767" stroke-width="3.75" stroke-linecap="round" stroke-linejoin="round" />
+	<text x="32" y="44" fill="#f3ead1" font-family="Georgia, 'Times New Roman', serif" font-size="13" font-weight="700" letter-spacing="1.4" text-anchor="middle">666</text>
+</svg>
