@@ -174,9 +174,9 @@
 
 <style>
 	.plant-map-section {
-		width: calc(100% - 2rem);
+		width: 100%;
 		background: #fff;
-		margin: 0 1rem 1rem 1rem;
+		margin: 0 auto 1rem;
 		/* padding-block: clamp(4rem, 8vw, 8rem) clamp(8rem, 14vw, 14rem); */
 	}
 
@@ -195,6 +195,7 @@
 		width: 100%;
 		height: auto;
 		aspect-ratio: 3426 / 2551;
+		font-family: Inter, sans-serif;
 	}
 
 	.plant-map-svg :global([data-plant-annotation]) {
