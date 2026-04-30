@@ -203,6 +203,10 @@ img {
 }
 
 @media (max-width: 980px) {
+  .read-word.is-read {
+    color: var(--ink);
+  }
+
   .letter-page {
     grid-template-columns: 1fr;
     gap: 2.75rem;
