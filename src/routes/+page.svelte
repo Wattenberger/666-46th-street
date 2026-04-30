@@ -15,9 +15,9 @@
 		photoTriggers.find((trigger) => trigger.key === activeTriggerKey) ?? photoTriggers[0]
 	);
 	const pageUrl = 'https://66646th.com/';
-	const pageTitle = '666 46th St';
+	const pageTitle = 'Come visit 666 46th St';
 	const pageDescription =
-		'Come visit our lovely compound near Temescal, open house first weekend of May';
+		'We\'re selling our lovely compound near Temescal, open house first weekend of May. Relax in the yard and back buildings, cross the street for amazing food, get to SF in 20 minutes.';
 	const shareImageUrl = 'https://66646th.com/og.png';
 	const readingLineRatio = 1 / 3;
 	const lineTopTolerance = 2;
