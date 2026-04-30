@@ -29,6 +29,51 @@
 		return fill?.trim().toUpperCase() ?? '';
 	}
 
+	function getDeclaredFill(element: Element) {
+		const attrFill = normalizeFill(element.getAttribute('fill'));
+		if (attrFill) return attrFill;
+
+		const styleFill = element.getAttribute('style')?.match(/(?:^|;)\s*fill\s*:\s*([^;]+)/i)?.[1];
+		return normalizeFill(styleFill ?? null);
+	}
+
+	function getFill(element: Element) {
+		const ownFill = getDeclaredFill(element);
+		if (ownFill) return ownFill;
+
+		const filledChild = element.querySelector('[fill], [style*="fill"]');
+		const childFill = filledChild ? getDeclaredFill(filledChild) : '';
+		if (childFill) return childFill;
+
+		let parent = element.parentElement;
+		while (parent && parent.tagName.toLowerCase() !== 'svg') {
+			const parentFill = getDeclaredFill(parent);
+			if (parentFill) return parentFill;
+			parent = parent.parentElement;
+		}
+
+		return '';
+	}
+
+	function markVisibleMapText(text: SVGElement) {
+		text.setAttribute('data-map-point', '');
+		text.setAttribute('data-map-label', '');
+		text.setAttribute('font-family', 'Inter, sans-serif');
+		text.style.setProperty('font-family', 'Inter, sans-serif');
+		text.removeAttribute('opacity');
+		text.style.removeProperty('opacity');
+		text.style.setProperty('fill-opacity', '1');
+		text.style.setProperty('stroke-opacity', '1');
+		for (const tspan of text.querySelectorAll<SVGElement>('tspan')) {
+			tspan.setAttribute('font-family', 'Inter, sans-serif');
+			tspan.style.setProperty('font-family', 'Inter, sans-serif');
+			tspan.removeAttribute('opacity');
+			tspan.style.removeProperty('opacity');
+			tspan.style.setProperty('fill-opacity', '1');
+			tspan.style.setProperty('stroke-opacity', '1');
+		}
+	}
+
 	function transformNeighborhoodSvg(svg: string) {
 		const document = new DOMParser().parseFromString(svg, 'image/svg+xml');
 		const root = document.querySelector('svg');
@@ -41,8 +86,17 @@
 		root.classList.add('neighborhood-map-root');
 
 		let itemIndex = 0;
-		for (const element of root.querySelectorAll<SVGElement>('text, circle')) {
-			const group = groupByFill.get(normalizeFill(element.getAttribute('fill')));
+		for (const text of root.querySelectorAll<SVGElement>('text')) {
+			const group = groupByFill.get(getFill(text));
+
+			markVisibleMapText(text);
+			if (group) text.setAttribute('data-neighborhood-group', group.key);
+			text.style.setProperty('--map-item-delay', `${itemIndex * 28}ms`);
+			itemIndex += 1;
+		}
+
+		for (const element of root.querySelectorAll<SVGElement>('circle')) {
+			const group = groupByFill.get(getFill(element));
 
 			if (!group) continue;
 
@@ -207,6 +261,13 @@
 		font-family: Inter, sans-serif;
 	}
 
+	.neighborhood-map-svg :global(text),
+	.neighborhood-map-svg :global(tspan) {
+		font-family: Inter, sans-serif !important;
+		fill-opacity: 1 !important;
+		stroke-opacity: 1 !important;
+	}
+
 	.neighborhood-map-svg :global([data-map-point]) {
 		opacity: 0;
 		transition:
@@ -214,7 +275,12 @@
 			filter 180ms ease;
 	}
 
+	.neighborhood-map-svg :global([data-map-label]) {
+		paint-order: stroke fill;
+	}
+
 	.neighborhood-map-frame.is-visible .neighborhood-map-svg :global([data-map-point]) {
+		opacity: 1;
 		animation: neighborhood-map-point-in 620ms ease-out both;
 		animation-delay: var(--map-item-delay);
 	}
