@@ -1,0 +1,1 @@
+Disable Jekyll processing for GitHub Pages so SvelteKit _app assets are served.
