@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
+	import NeighborhoodMap from '$lib/NeighborhoodMap.svelte';
 	import PlantMap from '$lib/PlantMap.svelte';
 	import {
 		letterSections,
@@ -237,4 +238,5 @@
 	</section>
 
 		<PlantMap />
+		<NeighborhoodMap />
 </main>
