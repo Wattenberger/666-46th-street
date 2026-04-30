@@ -112,7 +112,7 @@ img {
 .visual-column {
   position: sticky;
   top: var(--page-gutter);
-  height: calc(100vh - var(--page-gutter) * 3);
+  height: calc(100vh - var(--page-gutter) * 2);
   display: flex;
   flex-direction: column;
   align-items: flex-end;
@@ -227,7 +227,7 @@ img {
   .mobile-inline-photo {
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: clamp(0.875rem, 2.5vw, 1.5rem);
+    gap: clamp(0.5rem, 1.5vw, 0.875rem);
     margin: clamp(1.5rem, 5vw, 2.75rem) 0 clamp(1.75rem, 5.5vw, 3.25rem);
     overflow: hidden;
   }
@@ -255,10 +255,10 @@ img {
   }
 }
 
-@media (max-width: 480px) {
+@media (max-width: 699px) {
   .mobile-inline-photo {
     grid-template-columns: 1fr;
-    gap: clamp(0.875rem, 4vw, 1.5rem);
+    gap: clamp(0.625rem, 3vw, 1rem);
     margin: clamp(1.5rem, 7vw, 2.75rem) 0 clamp(1.75rem, 8vw, 3.25rem);
   }
 
