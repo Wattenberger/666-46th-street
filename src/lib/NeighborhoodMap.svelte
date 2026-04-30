@@ -3,12 +3,12 @@
 
 	const mapPath = '/listing/neighborhood-map.svg';
 	const mapGroups = [
-		{ key: 'parks', label: 'Parks & Playgrounds', color: '#5DB481', legendTop: 3.6, legendWidth: 14 },
-		{ key: 'grocery', label: 'Grocery stores', color: '#A25575', legendTop: 6.2, legendWidth: 10 },
-		{ key: 'cafes', label: 'Cafes', color: '#EC6556', legendTop: 8.8, legendWidth: 5 },
-		{ key: 'gyms', label: 'Gyms', color: '#808BC2', legendTop: 11.4, legendWidth: 5 },
-		{ key: 'restaurants', label: 'Restaurants & Bars', color: '#439C9D', legendTop: 14, legendWidth: 13 },
-		{ key: 'bart', label: 'BART', color: '#272727', legendTop: 16.6, legendWidth: 5 }
+		{ key: 'parks', label: 'Parks & Playgrounds', color: '#5DB481', legendTop: 3, legendWidth: 14 },
+		{ key: 'grocery', label: 'Grocery stores', color: '#A25575', legendTop: 5.6, legendWidth: 10 },
+		{ key: 'cafes', label: 'Cafes', color: '#EC6556', legendTop: 8.2, legendWidth: 5 },
+		{ key: 'gyms', label: 'Gyms', color: '#808BC2', legendTop: 10.8, legendWidth: 5 },
+		{ key: 'restaurants', label: 'Restaurants & Bars', color: '#439C9D', legendTop: 13.2, legendWidth: 13 },
+		{ key: 'bart', label: 'BART', color: '#272727', legendTop: 15.8, legendWidth: 5 }
 	] as const;
 
 	type MapGroupKey = (typeof mapGroups)[number]['key'];
@@ -21,7 +21,7 @@
 	let activeGroup = $state<MapGroupKey | null>(null);
 	let isMapVisible = $state(false);
 	let neighborhoodSvg = $state<string | null>(null);
-	let mapFrame: HTMLElement;
+	let mapFrame = $state<HTMLElement | null>(null);
 	let svgHost = $state<HTMLElement | null>(null);
 
 	function setActiveGroup(group: MapGroupKey | null) {
@@ -102,6 +102,21 @@
 
 	function setActiveGroupFromLegend(target: EventTarget | null) {
 		const control = getLegendControl(target);
+		const group = control?.getAttribute('data-neighborhood-group') as MapGroupKey | null;
+
+		if (!group) return false;
+
+		setActiveGroup(group);
+		return true;
+	}
+
+	function getHitareaControl(target: EventTarget | null) {
+		if (!(target instanceof Element)) return null;
+		return target.closest<HTMLElement>('.embedded-legend-hitarea');
+	}
+
+	function setActiveGroupFromHitarea(target: EventTarget | null) {
+		const control = getHitareaControl(target);
 		const group = control?.getAttribute('data-neighborhood-group') as MapGroupKey | null;
 
 		if (!group) return false;
@@ -268,6 +283,67 @@
 		};
 	});
 
+		$effect(() => {
+			if (!mapFrame) return;
+			const frame = mapFrame;
+
+			const handlePointerOver = (event: PointerEvent) => {
+				setActiveGroupFromHitarea(event.target);
+			};
+
+			const handlePointerOut = (event: PointerEvent) => {
+				const from = getHitareaControl(event.target);
+				const to = getHitareaControl(event.relatedTarget);
+
+				if (from && from !== to) setActiveGroup(null);
+			};
+
+			const handleFocus = (event: FocusEvent) => {
+				setActiveGroupFromHitarea(event.target);
+			};
+
+			const handleBlur = (event: FocusEvent) => {
+				if (getHitareaControl(event.target) && !getHitareaControl(event.relatedTarget)) {
+					setActiveGroup(null);
+				}
+			};
+
+			const handleClick = (event: MouseEvent) => {
+				if (setActiveGroupFromHitarea(event.target)) event.preventDefault();
+			};
+
+			const handleKeyDown = (event: KeyboardEvent) => {
+				const control = getHitareaControl(event.target);
+
+				if (!control) return;
+
+				if (event.key === 'Escape') {
+					setActiveGroup(null);
+					control.blur();
+					event.preventDefault();
+				} else if (event.key === 'Enter' || event.key === ' ') {
+					setActiveGroupFromHitarea(control);
+					event.preventDefault();
+				}
+			};
+
+			frame.addEventListener('pointerover', handlePointerOver);
+			frame.addEventListener('pointerout', handlePointerOut);
+			frame.addEventListener('focus', handleFocus, true);
+			frame.addEventListener('blur', handleBlur, true);
+			frame.addEventListener('click', handleClick);
+			frame.addEventListener('keydown', handleKeyDown);
+
+			return () => {
+				frame.removeEventListener('pointerover', handlePointerOver);
+				frame.removeEventListener('pointerout', handlePointerOut);
+				frame.removeEventListener('focus', handleFocus, true);
+				frame.removeEventListener('blur', handleBlur, true);
+				frame.removeEventListener('click', handleClick);
+				frame.removeEventListener('keydown', handleKeyDown);
+			};
+		});
+
 	onMount(() => {
 		let isMounted = true;
 		let observer: IntersectionObserver | null = null;
@@ -331,6 +407,7 @@
 					type="button"
 					class="embedded-legend-hitarea"
 					style={`top: ${group.legendTop}%; width: ${group.legendWidth}%;`}
+					data-neighborhood-group={group.key}
 					aria-label={`Filter neighborhood map: ${group.label}`}
 					aria-pressed={activeGroup === group.key}
 					onpointerenter={() => setActiveGroup(group.key)}
@@ -351,19 +428,19 @@
 
 <style>
 	.neighborhood-map-section {
-		width: min(100% - (var(--page-gutter) * 2), 1800px);
-		margin: 0 auto;
-		padding-block: clamp(4rem, 10vw, 8rem) clamp(5rem, 12vw, 10rem);
+		width: min(100% , 140vh);
+		margin: 0 auto 6em;
+		/* padding-block: clamp(4rem, 10vw, 8rem) clamp(5rem, 12vw, 10rem); */
 		color: var(--ink);
 	}
 
 	.neighborhood-map-copy {
-		margin: 0 auto clamp(1rem, 2.5vw, 1.75rem);
+		/* margin: 0 auto clamp(1rem, 2.5vw, 1.75rem); */
 		text-align: center;
 	}
 
 	.neighborhood-map-kicker {
-		margin: 0;
+		margin: 5em 0 1em;
 		font-family: Inter, sans-serif;
 		font-size: 0.75rem;
 		letter-spacing: 0.22em;
@@ -374,8 +451,8 @@
 	.neighborhood-map-frame {
 		position: relative;
 		overflow: hidden;
-		background: #fbfaf7;
-		box-shadow: 0 2rem 5rem rgb(0 0 0 / 0.2);
+		/* background: #fbfaf7; */
+		/* box-shadow: 0 2rem 5rem rgb(0 0 0 / 0.2); */
 	}
 
 	.neighborhood-map-frame img,
@@ -441,7 +518,7 @@
 	.embedded-legend-hitarea {
 		position: absolute;
 		left: 1.7%;
-		height: 2.35%;
+		height: 2.75%;
 		border: 0;
 		border-radius: 0.15rem;
 		background: transparent;
