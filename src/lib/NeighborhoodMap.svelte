@@ -3,12 +3,12 @@
 
 	const mapPath = '/listing/neighborhood-map.svg';
 	const mapGroups = [
-		{ key: 'parks', label: 'Parks & Playgrounds', color: '#5DB481' },
-		{ key: 'grocery', label: 'Grocery stores', color: '#A25575' },
-		{ key: 'cafes', label: 'Cafes', color: '#EC6556' },
-		{ key: 'gyms', label: 'Gyms', color: '#808BC2' },
-		{ key: 'restaurants', label: 'Restaurants & Bars', color: '#439C9D' },
-		{ key: 'bart', label: 'BART', color: '#272727' }
+		{ key: 'parks', label: 'Parks & Playgrounds', color: '#5DB481', legendTop: 3.6, legendWidth: 14 },
+		{ key: 'grocery', label: 'Grocery stores', color: '#A25575', legendTop: 6.2, legendWidth: 10 },
+		{ key: 'cafes', label: 'Cafes', color: '#EC6556', legendTop: 8.8, legendWidth: 5 },
+		{ key: 'gyms', label: 'Gyms', color: '#808BC2', legendTop: 11.4, legendWidth: 5 },
+		{ key: 'restaurants', label: 'Restaurants & Bars', color: '#439C9D', legendTop: 14, legendWidth: 13 },
+		{ key: 'bart', label: 'BART', color: '#272727', legendTop: 16.6, legendWidth: 5 }
 	] as const;
 
 	type MapGroupKey = (typeof mapGroups)[number]['key'];
@@ -26,6 +26,11 @@
 
 	function setActiveGroup(group: MapGroupKey | null) {
 		activeGroup = group;
+	}
+
+	function clearActiveGroupAndBlur(event: Event) {
+		setActiveGroup(null);
+		(event.currentTarget as HTMLElement).blur();
 	}
 
 	function normalizeText(value: string | null) {
@@ -320,6 +325,26 @@
 		{:else}
 			<img src={mapPath} alt="Neighborhood map near 666 46th St" loading="lazy" decoding="async" />
 		{/if}
+		<div class="embedded-legend-hitareas" aria-label="Neighborhood map category filters">
+			{#each mapGroups as group}
+				<button
+					type="button"
+					class="embedded-legend-hitarea"
+					style={`top: ${group.legendTop}%; width: ${group.legendWidth}%;`}
+					aria-label={`Filter neighborhood map: ${group.label}`}
+					aria-pressed={activeGroup === group.key}
+					onpointerenter={() => setActiveGroup(group.key)}
+					onpointerleave={() => setActiveGroup(null)}
+					onfocus={() => setActiveGroup(group.key)}
+					onblur={() => setActiveGroup(null)}
+					onkeydown={(event) => {
+						if (event.key === 'Escape') clearActiveGroupAndBlur(event);
+					}}
+				>
+					<span>{group.label}</span>
+				</button>
+			{/each}
+		</div>
 	</div>
 
 </section>
@@ -347,6 +372,7 @@
 	}
 
 	.neighborhood-map-frame {
+		position: relative;
 		overflow: hidden;
 		background: #fbfaf7;
 		box-shadow: 0 2rem 5rem rgb(0 0 0 / 0.2);
@@ -405,6 +431,42 @@
 		text-decoration: underline;
 	}
 
+	.embedded-legend-hitareas {
+		position: absolute;
+		inset: 0;
+		pointer-events: none;
+		font-family: Inter, sans-serif;
+	}
+
+	.embedded-legend-hitarea {
+		position: absolute;
+		left: 1.7%;
+		height: 2.35%;
+		border: 0;
+		border-radius: 0.15rem;
+		background: transparent;
+		color: transparent;
+		cursor: pointer;
+		pointer-events: auto;
+	}
+
+	.embedded-legend-hitarea:focus-visible {
+		outline: 2px solid color-mix(in srgb, var(--ink) 58%, transparent);
+		outline-offset: 2px;
+	}
+
+	.embedded-legend-hitarea span {
+		position: absolute;
+		width: 1px;
+		height: 1px;
+		padding: 0;
+		margin: -1px;
+		overflow: hidden;
+		clip: rect(0 0 0 0);
+		white-space: nowrap;
+		border: 0;
+	}
+
 	@keyframes neighborhood-map-point-in {
 		from {
 			opacity: 0;
@@ -427,7 +489,8 @@
 		}
 
 		.neighborhood-map-svg,
-		.neighborhood-map-frame img {
+		.neighborhood-map-frame img,
+		.embedded-legend-hitareas {
 			min-width: 56rem;
 		}
 	}
