@@ -3,17 +3,20 @@
 
 	const mapPath = '/listing/neighborhood-map.svg';
 	const mapGroups = [
-		{ key: 'parks', label: 'Parks & Playgrounds', color: '#147F3D' },
-		{ key: 'grocery', label: 'Grocery stores', color: '#BF3A19' },
-		{ key: 'cafes', label: 'Cafes', color: '#3092C3' },
+		{ key: 'parks', label: 'Parks & Playgrounds', color: '#5DB481' },
+		{ key: 'grocery', label: 'Grocery stores', color: '#A25575' },
+		{ key: 'cafes', label: 'Cafes', color: '#EC6556' },
 		{ key: 'gyms', label: 'Gyms', color: '#808BC2' },
-		{ key: 'restaurants', label: 'Restaurants & Bars', color: '#086659' },
+		{ key: 'restaurants', label: 'Restaurants & Bars', color: '#439C9D' },
 		{ key: 'bart', label: 'BART', color: '#272727' }
 	] as const;
 
 	type MapGroupKey = (typeof mapGroups)[number]['key'];
 
 	const groupByFill = new Map(mapGroups.map((group) => [group.color.toUpperCase(), group]));
+	const groupByLabel: Map<string, (typeof mapGroups)[number]> = new Map(
+		mapGroups.map((group) => [group.label, group])
+	);
 
 	let activeGroup = $state<MapGroupKey | null>(null);
 	let isMapVisible = $state(false);
@@ -23,6 +26,10 @@
 
 	function setActiveGroup(group: MapGroupKey | null) {
 		activeGroup = group;
+	}
+
+	function normalizeText(value: string | null) {
+		return value?.replace(/\s+/g, ' ').trim() ?? '';
 	}
 
 	function normalizeFill(fill: string | null) {
@@ -74,24 +81,74 @@
 		}
 	}
 
+	function markEmbeddedLegendControl(text: SVGElement, group: (typeof mapGroups)[number]) {
+		text.setAttribute('data-neighborhood-legend', '');
+		text.setAttribute('role', 'button');
+		text.setAttribute('tabindex', '0');
+		text.setAttribute('focusable', 'true');
+		text.setAttribute('aria-label', `Filter neighborhood map: ${group.label}`);
+		text.setAttribute('aria-pressed', 'false');
+	}
+
+	function getLegendControl(target: EventTarget | null) {
+		if (!(target instanceof Element)) return null;
+		return target.closest<SVGElement>('[data-neighborhood-legend]');
+	}
+
+	function setActiveGroupFromLegend(target: EventTarget | null) {
+		const control = getLegendControl(target);
+		const group = control?.getAttribute('data-neighborhood-group') as MapGroupKey | null;
+
+		if (!group) return false;
+
+		setActiveGroup(group);
+		return true;
+	}
+
+	function getDelayQueue(
+		queues: Map<MapGroupKey, string[]>,
+		group: (typeof mapGroups)[number]
+	) {
+		let queue = queues.get(group.key);
+
+		if (!queue) {
+			queue = [];
+			queues.set(group.key, queue);
+		}
+
+		return queue;
+	}
+
 	function transformNeighborhoodSvg(svg: string) {
 		const document = new DOMParser().parseFromString(svg, 'image/svg+xml');
 		const root = document.querySelector('svg');
 
 		if (!root) return svg;
 
-		root.setAttribute('aria-hidden', 'true');
+		root.removeAttribute('aria-hidden');
+		root.setAttribute('role', 'group');
+		root.setAttribute('aria-label', 'Neighborhood map with embedded category filters');
 		root.setAttribute('focusable', 'false');
 		root.setAttribute('preserveAspectRatio', 'xMidYMid meet');
 		root.classList.add('neighborhood-map-root');
 
 		let itemIndex = 0;
+		const groupedLabelDelays = new Map<MapGroupKey, string[]>();
 		for (const text of root.querySelectorAll<SVGElement>('text')) {
 			const group = groupByFill.get(getFill(text));
+			const legendGroup = groupByLabel.get(normalizeText(text.textContent));
+			const delay = `${itemIndex * 28}ms`;
 
 			markVisibleMapText(text);
-			if (group) text.setAttribute('data-neighborhood-group', group.key);
-			text.style.setProperty('--map-item-delay', `${itemIndex * 28}ms`);
+			if (group) {
+				text.setAttribute('data-neighborhood-group', group.key);
+				if (!legendGroup) getDelayQueue(groupedLabelDelays, group).push(delay);
+			}
+			if (legendGroup) {
+				text.setAttribute('data-neighborhood-group', legendGroup.key);
+				markEmbeddedLegendControl(text, legendGroup);
+			}
+			text.style.setProperty('--map-item-delay', delay);
 			itemIndex += 1;
 		}
 
@@ -102,7 +159,10 @@
 
 			element.setAttribute('data-neighborhood-group', group.key);
 			element.setAttribute('data-map-point', '');
-			element.style.setProperty('--map-item-delay', `${itemIndex * 28}ms`);
+			element.style.setProperty(
+				'--map-item-delay',
+				getDelayQueue(groupedLabelDelays, group).shift() ?? `${itemIndex * 28}ms`
+			);
 			itemIndex += 1;
 		}
 
@@ -119,6 +179,88 @@
 			element.classList.toggle('is-highlighted', isHighlighted);
 			element.classList.toggle('is-muted', isMuted);
 		}
+
+		for (const legend of svgHost.querySelectorAll<SVGElement>('[data-neighborhood-legend]')) {
+			legend.setAttribute(
+				'aria-pressed',
+				String(activeGroup === legend.getAttribute('data-neighborhood-group'))
+			);
+		}
+	});
+
+	$effect(() => {
+		if (!svgHost || !neighborhoodSvg) return;
+		const host = svgHost;
+
+		const handlePointerOver = (event: PointerEvent) => {
+			setActiveGroupFromLegend(event.target);
+		};
+
+		const handlePointerOut = (event: PointerEvent) => {
+			const from = getLegendControl(event.target);
+			const to = getLegendControl(event.relatedTarget);
+
+			if (from && from !== to) setActiveGroup(null);
+		};
+
+		const handleFocusIn = (event: FocusEvent) => {
+			setActiveGroupFromLegend(event.target);
+		};
+
+		const handleFocus = (event: FocusEvent) => {
+			setActiveGroupFromLegend(event.target);
+		};
+
+		const handleFocusOut = (event: FocusEvent) => {
+			if (getLegendControl(event.target) && !getLegendControl(event.relatedTarget)) {
+				setActiveGroup(null);
+			}
+		};
+
+		const handleBlur = (event: FocusEvent) => {
+			if (getLegendControl(event.target) && !getLegendControl(event.relatedTarget)) {
+				setActiveGroup(null);
+			}
+		};
+
+		const handleClick = (event: MouseEvent) => {
+			if (setActiveGroupFromLegend(event.target)) event.preventDefault();
+		};
+
+		const handleKeyDown = (event: KeyboardEvent) => {
+			const control = getLegendControl(event.target);
+
+			if (!control) return;
+
+			if (event.key === 'Escape') {
+				setActiveGroup(null);
+				control.blur();
+				event.preventDefault();
+			} else if (event.key === 'Enter' || event.key === ' ') {
+				setActiveGroupFromLegend(control);
+				event.preventDefault();
+			}
+		};
+
+		host.addEventListener('pointerover', handlePointerOver);
+		host.addEventListener('pointerout', handlePointerOut);
+		host.addEventListener('focus', handleFocus, true);
+		host.addEventListener('focusin', handleFocusIn);
+		host.addEventListener('blur', handleBlur, true);
+		host.addEventListener('focusout', handleFocusOut);
+		host.addEventListener('click', handleClick);
+		host.addEventListener('keydown', handleKeyDown);
+
+		return () => {
+			host.removeEventListener('pointerover', handlePointerOver);
+			host.removeEventListener('pointerout', handlePointerOut);
+			host.removeEventListener('focus', handleFocus, true);
+			host.removeEventListener('focusin', handleFocusIn);
+			host.removeEventListener('blur', handleBlur, true);
+			host.removeEventListener('focusout', handleFocusOut);
+			host.removeEventListener('click', handleClick);
+			host.removeEventListener('keydown', handleKeyDown);
+		};
 	});
 
 	onMount(() => {
@@ -162,9 +304,7 @@
 
 <section class="neighborhood-map-section" aria-labelledby="neighborhood-map-title">
 	<div class="neighborhood-map-copy">
-		<p class="neighborhood-map-kicker">Around the neighborhood</p>
-		<h2 id="neighborhood-map-title">Temescal favorites, parks, cafes, and transit close by.</h2>
-		<p>Hover or focus a category to trace that kind of destination across the map.</p>
+		<p id="neighborhood-map-title" class="neighborhood-map-kicker">Neighborhood highlights</p>
 	</div>
 
 	<div
@@ -172,8 +312,8 @@
 		class="neighborhood-map-frame"
 		class:is-visible={isMapVisible}
 		class:has-active-filter={Boolean(activeGroup)}
-		role="img"
-		aria-label="Neighborhood map of parks, restaurants, cafes, groceries, gyms, and BART near 666 46th St"
+		role="group"
+		aria-label="Interactive neighborhood map of parks, restaurants, cafes, groceries, gyms, and BART near 666 46th St"
 	>
 		{#if neighborhoodSvg}
 			<div bind:this={svgHost} class="neighborhood-map-svg">{@html neighborhoodSvg}</div>
@@ -182,29 +322,6 @@
 		{/if}
 	</div>
 
-	<div class="neighborhood-map-legend" aria-label="Neighborhood map category filters">
-		{#each mapGroups as group}
-			<button
-				type="button"
-				class="legend-control"
-				class:is-active={activeGroup === group.key}
-				aria-pressed={activeGroup === group.key}
-				onpointerenter={() => setActiveGroup(group.key)}
-				onpointerleave={() => setActiveGroup(null)}
-				onfocus={() => setActiveGroup(group.key)}
-				onblur={() => setActiveGroup(null)}
-				onkeydown={(event) => {
-					if (event.key === 'Escape') {
-						setActiveGroup(null);
-						(event.currentTarget as HTMLButtonElement).blur();
-					}
-				}}
-			>
-				<span class="legend-dot" style:background={group.color}></span>
-				<span>{group.label}</span>
-			</button>
-		{/each}
-	</div>
 </section>
 
 <style>
@@ -216,34 +333,16 @@
 	}
 
 	.neighborhood-map-copy {
-		max-width: 52rem;
-		margin: 0 auto clamp(2rem, 5vw, 4rem);
+		margin: 0 auto clamp(1rem, 2.5vw, 1.75rem);
 		text-align: center;
 	}
 
 	.neighborhood-map-kicker {
-		margin: 0 0 0.8rem;
+		margin: 0;
 		font-family: Inter, sans-serif;
 		font-size: 0.75rem;
 		letter-spacing: 0.22em;
 		text-transform: uppercase;
-		color: var(--muted-ink);
-	}
-
-	.neighborhood-map-copy h2 {
-		margin: 0;
-		font-size: clamp(2.4rem, 6vw, 6.5rem);
-		font-weight: 300;
-		line-height: 0.95;
-		letter-spacing: -0.055em;
-	}
-
-	.neighborhood-map-copy p:last-child {
-		max-width: 34rem;
-		margin: 1.1rem auto 0;
-		font-family: Inter, sans-serif;
-		font-size: clamp(0.95rem, 1.3vw, 1.12rem);
-		line-height: 1.6;
 		color: var(--muted-ink);
 	}
 
@@ -295,47 +394,15 @@
 		filter: drop-shadow(0 0 0.5rem rgb(255 255 255 / 0.9));
 	}
 
-	.neighborhood-map-legend {
-		margin: clamp(1rem, 2.5vw, 1.75rem) auto 0;
-		display: flex;
-		flex-wrap: wrap;
-		justify-content: center;
-		gap: 0.65rem;
-		font-family: Inter, sans-serif;
-	}
-
-	.legend-control {
-		display: inline-flex;
-		align-items: center;
-		gap: 0.5rem;
-		border: 1px solid color-mix(in srgb, var(--ink) 18%, transparent);
-		border-radius: 999px;
-		padding: 0.62rem 0.86rem;
-		background: color-mix(in srgb, var(--ink) 8%, transparent);
-		color: var(--ink);
-		font: inherit;
-		font-size: 0.84rem;
+	.neighborhood-map-svg :global([data-neighborhood-legend]) {
 		cursor: pointer;
-		transition:
-			background-color 160ms ease,
-			border-color 160ms ease,
-			transform 160ms ease;
+		transition: filter 180ms ease;
 	}
 
-	.legend-control:hover,
-	.legend-control:focus-visible,
-	.legend-control.is-active {
-		border-color: color-mix(in srgb, var(--ink) 48%, transparent);
-		background: color-mix(in srgb, var(--ink) 16%, transparent);
-		transform: translateY(-1px);
+	.neighborhood-map-svg :global([data-neighborhood-legend]:focus-visible) {
 		outline: none;
-	}
-
-	.legend-dot {
-		width: 0.72rem;
-		height: 0.72rem;
-		border-radius: 999px;
-		box-shadow: 0 0 0 2px rgb(255 255 255 / 0.32);
+		filter: drop-shadow(0 0 0.45rem rgb(255 255 255 / 0.95));
+		text-decoration: underline;
 	}
 
 	@keyframes neighborhood-map-point-in {
@@ -372,7 +439,7 @@
 			transition-duration: 1ms;
 		}
 
-		.legend-control {
+		.neighborhood-map-svg :global([data-neighborhood-legend]) {
 			transition-duration: 1ms;
 		}
 	}
