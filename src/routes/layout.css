@@ -71,19 +71,8 @@ img {
 	--word-progress: 0;
 	position: relative;
 	display: inline-block;
-}
-
-.read-word::after {
-	content: '';
-	position: absolute;
-	inset-inline: 0;
-	bottom: 0.04em;
-	height: 0.1em;
-	background: color-mix(in srgb, var(--ink) 28%, transparent);
-	transform: scaleX(var(--word-progress));
-	transform-origin: left center;
-	transition: transform 180ms ease-out;
-	pointer-events: none;
+	opacity: calc(1 - (var(--word-progress) * 0.3));
+	transition: opacity 220ms ease-out;
 }
 
 .visual-column {
@@ -189,7 +178,7 @@ img {
 }
 
 @media (prefers-reduced-motion: reduce) {
-	.read-word::after,
+	.read-word,
 	.feature-photo img {
 		transition: none;
 	}
