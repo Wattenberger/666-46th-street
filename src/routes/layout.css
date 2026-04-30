@@ -235,6 +235,13 @@ img {
   .mobile-inline-photo img {
     height: clamp(12rem, 34vw, 22rem);
   }
+
+  .property-details {
+    justify-self: stretch;
+  }
+  .property-details div:first-child {
+    text-align: left;
+  }
 }
 
 @media (max-width: 640px) {
@@ -246,16 +253,9 @@ img {
     font-size: clamp(1.05rem, 5vw, 1.35rem);
     line-height: 1.62;
   }
-
-  .property-details {
-    justify-self: stretch;
-  }
-  .property-details div:first-child {
-    text-align: left;
-  }
 }
 
-@media (max-width: 699px) {
+@media (max-width: 799px) {
   .mobile-inline-photo {
     grid-template-columns: 1fr;
     gap: clamp(0.625rem, 3vw, 1rem);
