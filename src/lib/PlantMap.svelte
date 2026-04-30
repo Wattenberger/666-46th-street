@@ -24,6 +24,7 @@
 		[391, 395]
 	] as const satisfies readonly (readonly [number, number])[];
 	const frontAnnotationLineRange = '372:379';
+	const frontLabelLineRanges = [[171, 174]] as const satisfies readonly (readonly [number, number])[];
 
 	let plantMapSvg = $state<string | null>(null);
 	let isMapVisible = $state(false);
@@ -38,13 +39,24 @@
 			])
 		);
 		const annotationEnds = new Set<number>(annotationLineRanges.map(([, end]) => end));
+		const frontLabelStarts = new Map<number, { end: number }>(
+			frontLabelLineRanges.map(([start, end]) => [start, { end }])
+		);
+		const frontLabelEnds = new Set<number>(frontLabelLineRanges.map(([, end]) => end));
 		const output: string[] = [];
+		const frontLabels: string[] = [];
 		const frontAnnotations: string[] = [];
+		let frontLabel: string[] | null = null;
 		let frontAnnotation: string[] | null = null;
 
 		lines.forEach((line, index) => {
 			const lineNumber = index + 1;
+			const frontLabelStart = frontLabelStarts.get(lineNumber);
 			const annotation = annotationStarts.get(lineNumber);
+
+			if (frontLabelStart) {
+				frontLabel = ['<g data-plant-front-label="mint-patch">'];
+			}
 
 			if (annotation) {
 				const groupStart = `<g data-plant-annotation="" style="--annotation-delay: ${annotation.index * 85}ms">`;
@@ -56,10 +68,18 @@
 				}
 			}
 
-			if (frontAnnotation) {
+			if (frontLabel) {
+				frontLabel.push(line);
+			} else if (frontAnnotation) {
 				frontAnnotation.push(line);
 			} else {
 				output.push(line);
+			}
+
+			if (frontLabelEnds.has(lineNumber) && frontLabel) {
+				frontLabel.push('</g>');
+				frontLabels.push(frontLabel.join('\n'));
+				frontLabel = null;
 			}
 
 			if (annotationEnds.has(lineNumber)) {
@@ -73,13 +93,15 @@
 			}
 		});
 
-		if (frontAnnotations.length) {
+		const frontLayers = [...frontLabels, ...frontAnnotations];
+
+		if (frontLayers.length) {
 			const closingSvgIndex = output.lastIndexOf('</svg>');
 
 			if (closingSvgIndex === -1) {
-				output.push(...frontAnnotations);
+				output.push(...frontLayers);
 			} else {
-				output.splice(closingSvgIndex, 0, ...frontAnnotations);
+				output.splice(closingSvgIndex, 0, ...frontLayers);
 			}
 		}
 
