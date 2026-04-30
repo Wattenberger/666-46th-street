@@ -18,7 +18,7 @@
 	const pageTitle = '666 46th St';
 	const pageDescription =
 		'Come visit our lovely compound near Temescal, open house first weekend of May';
-	const shareImageUrl = 'https://66646th.com/houseog.png';
+	const shareImageUrl = 'https://66646th.com/og.png';
 	const readingLineRatio = 1 / 3;
 	const lineTopTolerance = 2;
 
