@@ -14,6 +14,11 @@
 	const activeTrigger = $derived(
 		photoTriggers.find((trigger) => trigger.key === activeTriggerKey) ?? photoTriggers[0]
 	);
+	const pageUrl = 'https://66646th.com/';
+	const pageTitle = '666 46th St';
+	const pageDescription =
+		'A heartfelt seller letter and photo tour for the next owner of 666 46th St in Oakland.';
+	const shareImageUrl = 'https://66646th.com/houseog.png';
 	const readingLineRatio = 1 / 3;
 	const lineTopTolerance = 2;
 
@@ -133,11 +138,25 @@
 </script>
 
 <svelte:head>
-	<title>666 46th St</title>
-	<meta
-		name="description"
-		content="A seller letter for the next owner of 666 46th St in Oakland."
-	/>
+	<title>{pageTitle}</title>
+	<meta name="description" content={pageDescription} />
+	<link rel="canonical" href={pageUrl} />
+	<meta property="og:url" content={pageUrl} />
+	<meta property="og:type" content="website" />
+	<meta property="og:site_name" content="666 46th St" />
+	<meta property="og:title" content={pageTitle} />
+	<meta property="og:description" content={pageDescription} />
+	<meta property="og:image" content={shareImageUrl} />
+	<meta property="og:image:secure_url" content={shareImageUrl} />
+	<meta property="og:image:type" content="image/png" />
+	<meta property="og:image:width" content="1200" />
+	<meta property="og:image:height" content="630" />
+	<meta property="og:image:alt" content="Exterior view of 666 46th St." />
+	<meta name="twitter:card" content="summary_large_image" />
+	<meta name="twitter:title" content={pageTitle} />
+	<meta name="twitter:description" content={pageDescription} />
+	<meta name="twitter:image" content={shareImageUrl} />
+	<meta name="twitter:image:alt" content="Exterior view of 666 46th St." />
 	{#each photoTriggers as trigger}
 		<link rel="preload" as="image" href={trigger.image} />
 	{/each}
