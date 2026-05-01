@@ -112,15 +112,6 @@
 	onMount(() => {
 		let isMounted = true;
 		let observer: IntersectionObserver | null = null;
-		const narrowMapQuery = window.matchMedia('(max-width: 999.98px)');
-
-		const centerMapScroll = async () => {
-			await tick();
-			if (!mapFrame || !narrowMapQuery.matches) return;
-
-			const maxScrollLeft = mapFrame.scrollWidth - mapFrame.clientWidth;
-			if (maxScrollLeft > 0) mapFrame.scrollLeft = maxScrollLeft / 2;
-		};
 
 		void (async () => {
 			try {
@@ -130,18 +121,11 @@
 				const svg = await response.text();
 				if (isMounted) {
 					plantMapSvg = wrapPlantAnnotations(svg);
-					void centerMapScroll();
 				}
 			} catch {
 				if (isMounted) plantMapSvg = null;
 			}
 		})();
-
-		const handleNarrowMapChange = () => {
-			void centerMapScroll();
-		};
-
-		narrowMapQuery.addEventListener('change', handleNarrowMapChange);
 
 		if (!('IntersectionObserver' in window) || !mapFrame) {
 			isMapVisible = true;
@@ -161,7 +145,6 @@
 
 		return () => {
 			isMounted = false;
-			narrowMapQuery.removeEventListener('change', handleNarrowMapChange);
 			observer?.disconnect();
 		};
 	});
@@ -252,7 +235,7 @@
 
 		.plant-map-frame img,
 		.plant-map-svg {
-			min-width: 800px;
+			min-width: 1200px;
 		}
 	}
 
