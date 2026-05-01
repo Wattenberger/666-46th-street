@@ -3,12 +3,12 @@
 
 	const mapPath = '/listing/neighborhood-map.svg';
 	const mapGroups = [
-		{ key: 'parks', label: 'Parks & Playgrounds', color: '#5DB481', legendTop: 3, legendWidth: 14 },
-		{ key: 'grocery', label: 'Grocery stores', color: '#A25575', legendTop: 5.6, legendWidth: 10 },
-		{ key: 'cafes', label: 'Cafes', color: '#EC6556', legendTop: 8.2, legendWidth: 5 },
-		{ key: 'gyms', label: 'Gyms', color: '#808BC2', legendTop: 10.8, legendWidth: 5 },
-		{ key: 'restaurants', label: 'Restaurants & Bars', color: '#439C9D', legendTop: 13.2, legendWidth: 13 },
-		{ key: 'bart', label: 'BART', color: '#272727', legendTop: 15.8, legendWidth: 5 }
+		{ key: 'parks', label: 'Parks & Playgrounds', color: '#5DB481', legendTop: 3, legendHeight: 2.6 },
+		{ key: 'grocery', label: 'Grocery stores', color: '#A25575', legendTop: 5.6, legendHeight: 2.6 },
+		{ key: 'cafes', label: 'Cafes', color: '#EC6556', legendTop: 8.2, legendHeight: 2.6 },
+		{ key: 'gyms', label: 'Gyms', color: '#808BC2', legendTop: 10.8, legendHeight: 2.4 },
+		{ key: 'restaurants', label: 'Restaurants & Bars', color: '#439C9D', legendTop: 13.2, legendHeight: 2.6 },
+		{ key: 'bart', label: 'BART', color: '#272727', legendTop: 15.8, legendHeight: 2.75 }
 	] as const;
 
 	type MapGroupKey = (typeof mapGroups)[number]['key'];
@@ -26,11 +26,6 @@
 
 	function setActiveGroup(group: MapGroupKey | null) {
 		activeGroup = group;
-	}
-
-	function clearActiveGroupAndBlur(event: Event) {
-		setActiveGroup(null);
-		(event.currentTarget as HTMLElement).blur();
 	}
 
 	function normalizeText(value: string | null) {
@@ -220,7 +215,7 @@
 			const from = getLegendControl(event.target);
 			const to = getLegendControl(event.relatedTarget);
 
-			if (from && from !== to) setActiveGroup(null);
+			if (from && !to) setActiveGroup(null);
 		};
 
 		const handleFocusIn = (event: FocusEvent) => {
@@ -295,7 +290,7 @@
 				const from = getHitareaControl(event.target);
 				const to = getHitareaControl(event.relatedTarget);
 
-				if (from && from !== to) setActiveGroup(null);
+				if (from && !to) setActiveGroup(null);
 			};
 
 			const handleFocus = (event: FocusEvent) => {
@@ -385,7 +380,7 @@
 
 <section class="neighborhood-map-section" aria-labelledby="neighborhood-map-title">
 	<div class="neighborhood-map-copy">
-		<p id="neighborhood-map-title" class="neighborhood-map-kicker">Neighborhood highlights</p>
+		<p id="neighborhood-map-title" class="neighborhood-map-kicker">Our favorites in the neighborhood (of many more!)</p>
 	</div>
 
 	<div
@@ -399,24 +394,24 @@
 		{#if neighborhoodSvg}
 			<div bind:this={svgHost} class="neighborhood-map-svg">{@html neighborhoodSvg}</div>
 		{:else}
-			<img src={mapPath} alt="Neighborhood map near 666 46th St" loading="lazy" decoding="async" />
+			<img
+				src={mapPath}
+				alt="Neighborhood map near 666 46th St"
+				width="1664"
+				height="1156"
+				loading="lazy"
+				decoding="async"
+			/>
 		{/if}
 		<div class="embedded-legend-hitareas" aria-label="Neighborhood map category filters">
 			{#each mapGroups as group}
 				<button
 					type="button"
 					class="embedded-legend-hitarea"
-					style={`top: ${group.legendTop}%; width: ${group.legendWidth}%;`}
+					style={`top: ${group.legendTop}%; height: ${group.legendHeight}%;`}
 					data-neighborhood-group={group.key}
 					aria-label={`Filter neighborhood map: ${group.label}`}
 					aria-pressed={activeGroup === group.key}
-					onpointerenter={() => setActiveGroup(group.key)}
-					onpointerleave={() => setActiveGroup(null)}
-					onfocus={() => setActiveGroup(group.key)}
-					onblur={() => setActiveGroup(null)}
-					onkeydown={(event) => {
-						if (event.key === 'Escape') clearActiveGroupAndBlur(event);
-					}}
 				>
 					<span>{group.label}</span>
 				</button>
@@ -450,6 +445,7 @@
 
 	.neighborhood-map-frame {
 		position: relative;
+		aspect-ratio: 1664 / 1156;
 		overflow: hidden;
 		/* background: #fbfaf7; */
 		/* box-shadow: 0 2rem 5rem rgb(0 0 0 / 0.2); */
@@ -518,9 +514,9 @@
 	.embedded-legend-hitarea {
 		position: absolute;
 		left: 1.7%;
-		height: 2.75%;
+		width: 15%;
 		border: 0;
-		border-radius: 0.15rem;
+		border-radius: 0;
 		background: transparent;
 		color: transparent;
 		cursor: pointer;
@@ -562,6 +558,7 @@
 		}
 
 		.neighborhood-map-frame {
+			min-height: calc(56rem * 1156 / 1664);
 			overflow-x: auto;
 		}
 
