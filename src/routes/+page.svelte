@@ -224,8 +224,8 @@
 			<dl class="property-details" aria-label="Open house details">
 				<div>
 					<!-- <dt>Address</dt> -->
-					<dd>666 46th St</dd>
-					<dd>Oakland, California</dd>
+					<dd>666 46th St, Oakland</dd>
+					<dd>$1.195M, 5 beds, 3 baths</dd>
 				</div>
 
 				<div>

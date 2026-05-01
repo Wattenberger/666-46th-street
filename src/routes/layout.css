@@ -263,6 +263,20 @@ img {
   }
 }
 
+@media (max-width: 480px) {
+  .property-details {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    text-align: left;
+  }
+
+  .property-details div:last-child dd {
+    display: flex;
+    justify-content: start;
+  }
+}
+
 @media (max-width: 400px) {
   .property-details .optional {
     display: none;
