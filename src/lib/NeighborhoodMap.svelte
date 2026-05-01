@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { onMount } from 'svelte';
+	import { onMount, tick } from 'svelte';
 
 	const mapPath = '/listing/neighborhood-map.svg';
 	const mapGroups = [
@@ -23,9 +23,28 @@
 	let neighborhoodSvg = $state<string | null>(null);
 	let mapFrame = $state<HTMLElement | null>(null);
 	let svgHost = $state<HTMLElement | null>(null);
+	let hasCenteredMap = false;
+	let hasUserInteractedWithMap = false;
 
 	function setActiveGroup(group: MapGroupKey | null) {
 		activeGroup = group;
+	}
+
+	function centerMapFrameOnce() {
+		if (!mapFrame || hasCenteredMap || hasUserInteractedWithMap) return;
+
+		const scrollableWidth = mapFrame.scrollWidth - mapFrame.clientWidth;
+		hasCenteredMap = true;
+
+		if (scrollableWidth > 0) {
+			mapFrame.scrollLeft = scrollableWidth / 2;
+		}
+	}
+
+	function scheduleInitialMapCenter() {
+		requestAnimationFrame(() => {
+			requestAnimationFrame(centerMapFrameOnce);
+		});
 	}
 
 	function normalizeText(value: string | null) {
@@ -342,6 +361,15 @@
 	onMount(() => {
 		let isMounted = true;
 		let observer: IntersectionObserver | null = null;
+		const frame = mapFrame;
+		const markUserInteraction = () => {
+			hasUserInteractedWithMap = true;
+		};
+
+		frame?.addEventListener('wheel', markUserInteraction, { passive: true });
+		frame?.addEventListener('touchstart', markUserInteraction, { passive: true });
+		frame?.addEventListener('pointerdown', markUserInteraction);
+		frame?.addEventListener('keydown', markUserInteraction);
 
 		void (async () => {
 			try {
@@ -349,11 +377,18 @@
 				if (!response.ok) return;
 
 				const svg = await response.text();
-				if (isMounted) neighborhoodSvg = transformNeighborhoodSvg(svg);
+				if (isMounted) {
+					neighborhoodSvg = transformNeighborhoodSvg(svg);
+					await tick();
+					scheduleInitialMapCenter();
+				}
 			} catch {
 				neighborhoodSvg = null;
+				if (isMounted) scheduleInitialMapCenter();
 			}
 		})();
+
+		scheduleInitialMapCenter();
 
 		if (!('IntersectionObserver' in window) || !mapFrame) {
 			isMapVisible = true;
@@ -374,13 +409,17 @@
 		return () => {
 			isMounted = false;
 			observer?.disconnect();
+			frame?.removeEventListener('wheel', markUserInteraction);
+			frame?.removeEventListener('touchstart', markUserInteraction);
+			frame?.removeEventListener('pointerdown', markUserInteraction);
+			frame?.removeEventListener('keydown', markUserInteraction);
 		};
 	});
 </script>
 
 <section class="neighborhood-map-section" aria-labelledby="neighborhood-map-title">
 	<div class="neighborhood-map-copy">
-		<p id="neighborhood-map-title" class="neighborhood-map-kicker">Our favorites in the neighborhood (of many more!)</p>
+			<p id="neighborhood-map-title" class="neighborhood-map-kicker">Neighborhood highlights</p>
 	</div>
 
 	<div
@@ -397,8 +436,8 @@
 			<img
 				src={mapPath}
 				alt="Neighborhood map near 666 46th St"
-				width="1662"
-				height="1142"
+					width="1662"
+					height="1142"
 				loading="lazy"
 				decoding="async"
 			/>
@@ -445,6 +484,7 @@
 
 	.neighborhood-map-frame {
 		position: relative;
+		aspect-ratio: 1662 / 1142;
 		overflow: hidden;
 		/* background: #fbfaf7; */
 		/* box-shadow: 0 2rem 5rem rgb(0 0 0 / 0.2); */
@@ -554,18 +594,18 @@
 
 	@media (max-width: 720px) {
 		.neighborhood-map-section {
-			width: min(100% - 1.25rem, 1800px);
+			width: 100%;
 		}
 
 		.neighborhood-map-frame {
-			min-height: calc(56rem * 1142 / 1662);
+			min-height: calc(50rem * 1142 / 1662);
 			overflow-x: auto;
 		}
 
 		.neighborhood-map-svg,
 		.neighborhood-map-frame img,
 		.embedded-legend-hitareas {
-			min-width: 56rem;
+			min-width: 50rem;
 		}
 	}
 
