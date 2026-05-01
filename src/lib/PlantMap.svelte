@@ -1,20 +1,8 @@
 <script lang="ts">
-	import { onMount } from 'svelte';
+	import { onMount, tick } from 'svelte';
 
-	const plantMaps = {
-		desktop: {
-			path: '/listing/plant-map.svg',
-			aspectRatio: '3426 / 2551',
-			wrapAnnotations: true
-		},
-		vertical: {
-			path: '/listing/plant-map-vertical.svg',
-			aspectRatio: '2703 / 3382',
-			wrapAnnotations: false
-		}
-	} as const;
-
-	type PlantMapSource = (typeof plantMaps)[keyof typeof plantMaps];
+	const plantMapPath = '/listing/plant-map.svg';
+	const plantMapAspectRatio = '3426 / 2551';
 
 	const annotationLineRanges = [
 		[295, 299],
@@ -39,7 +27,6 @@
 	const frontAnnotationLineRange = '372:379';
 	const frontLabelLineRanges = [[171, 174]] as const satisfies readonly (readonly [number, number])[];
 
-	let currentPlantMap = $state<PlantMapSource>(plantMaps.desktop);
 	let plantMapSvg = $state<string | null>(null);
 	let isMapVisible = $state(false);
 	let mapFrame: HTMLElement;
@@ -125,33 +112,36 @@
 	onMount(() => {
 		let isMounted = true;
 		let observer: IntersectionObserver | null = null;
-		let requestId = 0;
 		const narrowMapQuery = window.matchMedia('(max-width: 999.98px)');
 
-		const loadPlantMap = async (source: PlantMapSource) => {
-			const currentRequest = ++requestId;
-			currentPlantMap = source;
-			plantMapSvg = null;
+		const centerMapScroll = async () => {
+			await tick();
+			if (!mapFrame || !narrowMapQuery.matches) return;
 
+			const maxScrollLeft = mapFrame.scrollWidth - mapFrame.clientWidth;
+			if (maxScrollLeft > 0) mapFrame.scrollLeft = maxScrollLeft / 2;
+		};
+
+		void (async () => {
 			try {
-				const response = await fetch(source.path);
+				const response = await fetch(plantMapPath);
 				if (!response.ok) return;
 
 				const svg = await response.text();
-				if (isMounted && currentRequest === requestId) {
-					plantMapSvg = source.wrapAnnotations ? wrapPlantAnnotations(svg) : svg;
+				if (isMounted) {
+					plantMapSvg = wrapPlantAnnotations(svg);
+					void centerMapScroll();
 				}
 			} catch {
-				if (isMounted && currentRequest === requestId) plantMapSvg = null;
+				if (isMounted) plantMapSvg = null;
 			}
+		})();
+
+		const handleNarrowMapChange = () => {
+			void centerMapScroll();
 		};
 
-		const syncPlantMapSource = () => {
-			void loadPlantMap(narrowMapQuery.matches ? plantMaps.vertical : plantMaps.desktop);
-		};
-
-		syncPlantMapSource();
-		narrowMapQuery.addEventListener('change', syncPlantMapSource);
+		narrowMapQuery.addEventListener('change', handleNarrowMapChange);
 
 		if (!('IntersectionObserver' in window) || !mapFrame) {
 			isMapVisible = true;
@@ -171,7 +161,7 @@
 
 		return () => {
 			isMounted = false;
-			narrowMapQuery.removeEventListener('change', syncPlantMapSource);
+			narrowMapQuery.removeEventListener('change', handleNarrowMapChange);
 			observer?.disconnect();
 		};
 	});
@@ -191,14 +181,14 @@
 		bind:this={mapFrame}
 		class="plant-map-frame"
 		class:is-visible={isMapVisible}
-		style={`--plant-map-aspect: ${currentPlantMap.aspectRatio};`}
+		style={`--plant-map-aspect: ${plantMapAspectRatio};`}
 		role="img"
 		aria-label="Annotated planting map for 666 46th St"
 	>
 		{#if plantMapSvg}
 			<div class="plant-map-svg" aria-hidden="true">{@html plantMapSvg}</div>
 		{:else}
-			<img src={currentPlantMap.path} alt="Annotated planting map for 666 46th St" />
+			<img src={plantMapPath} alt="Annotated planting map for 666 46th St" />
 		{/if}
 	</div>
 </section>
@@ -214,11 +204,14 @@
 	.plant-map-frame {
 		max-width: 78vw;
 		margin: 0 auto;
-		aspect-ratio: var(--plant-map-aspect);
 		/* overflow: hidden;
 		border: 1px solid color-mix(in srgb, var(--ink) 10%, transparent);
 		background: #fbfaf7;
 		box-shadow: 0 2rem 5rem rgb(45 41 36 / 0.08); */
+	}
+
+	.plant-map-svg {
+		width: 100%;
 	}
 
 	.plant-map-frame img,
@@ -252,6 +245,14 @@
 	@media (max-width: 999.98px) {
 		.plant-map-frame {
 			max-width: 100%;
+			overflow-x: auto;
+			overscroll-behavior-x: contain;
+			-webkit-overflow-scrolling: touch;
+		}
+
+		.plant-map-frame img,
+		.plant-map-svg {
+			min-width: 800px;
 		}
 	}
 
