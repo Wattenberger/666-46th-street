@@ -1,7 +1,20 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 
-	const plantMapPath = '/listing/plant-map.svg';
+	const plantMaps = {
+		desktop: {
+			path: '/listing/plant-map.svg',
+			aspectRatio: '3426 / 2551',
+			wrapAnnotations: true
+		},
+		vertical: {
+			path: '/listing/plant-map-vertical.svg',
+			aspectRatio: '2703 / 3382',
+			wrapAnnotations: false
+		}
+	} as const;
+
+	type PlantMapSource = (typeof plantMaps)[keyof typeof plantMaps];
 
 	const annotationLineRanges = [
 		[295, 299],
@@ -26,6 +39,7 @@
 	const frontAnnotationLineRange = '372:379';
 	const frontLabelLineRanges = [[171, 174]] as const satisfies readonly (readonly [number, number])[];
 
+	let currentPlantMap = $state<PlantMapSource>(plantMaps.desktop);
 	let plantMapSvg = $state<string | null>(null);
 	let isMapVisible = $state(false);
 	let mapFrame: HTMLElement;
@@ -111,18 +125,33 @@
 	onMount(() => {
 		let isMounted = true;
 		let observer: IntersectionObserver | null = null;
+		let requestId = 0;
+		const narrowMapQuery = window.matchMedia('(max-width: 999.98px)');
 
-		void (async () => {
+		const loadPlantMap = async (source: PlantMapSource) => {
+			const currentRequest = ++requestId;
+			currentPlantMap = source;
+			plantMapSvg = null;
+
 			try {
-				const response = await fetch(plantMapPath);
+				const response = await fetch(source.path);
 				if (!response.ok) return;
 
 				const svg = await response.text();
-				if (isMounted) plantMapSvg = wrapPlantAnnotations(svg);
+				if (isMounted && currentRequest === requestId) {
+					plantMapSvg = source.wrapAnnotations ? wrapPlantAnnotations(svg) : svg;
+				}
 			} catch {
-				plantMapSvg = null;
+				if (isMounted && currentRequest === requestId) plantMapSvg = null;
 			}
-		})();
+		};
+
+		const syncPlantMapSource = () => {
+			void loadPlantMap(narrowMapQuery.matches ? plantMaps.vertical : plantMaps.desktop);
+		};
+
+		syncPlantMapSource();
+		narrowMapQuery.addEventListener('change', syncPlantMapSource);
 
 		if (!('IntersectionObserver' in window) || !mapFrame) {
 			isMapVisible = true;
@@ -142,6 +171,7 @@
 
 		return () => {
 			isMounted = false;
+			narrowMapQuery.removeEventListener('change', syncPlantMapSource);
 			observer?.disconnect();
 		};
 	});
@@ -161,13 +191,14 @@
 		bind:this={mapFrame}
 		class="plant-map-frame"
 		class:is-visible={isMapVisible}
+		style={`--plant-map-aspect: ${currentPlantMap.aspectRatio};`}
 		role="img"
 		aria-label="Annotated planting map for 666 46th St"
 	>
 		{#if plantMapSvg}
 			<div class="plant-map-svg" aria-hidden="true">{@html plantMapSvg}</div>
 		{:else}
-			<img src={plantMapPath} alt="Annotated planting map for 666 46th St" />
+			<img src={currentPlantMap.path} alt="Annotated planting map for 666 46th St" />
 		{/if}
 	</div>
 </section>
@@ -183,6 +214,7 @@
 	.plant-map-frame {
 		max-width: 78vw;
 		margin: 0 auto;
+		aspect-ratio: var(--plant-map-aspect);
 		/* overflow: hidden;
 		border: 1px solid color-mix(in srgb, var(--ink) 10%, transparent);
 		background: #fbfaf7;
@@ -194,7 +226,7 @@
 		display: block;
 		width: 100%;
 		height: auto;
-		aspect-ratio: 3426 / 2551;
+		aspect-ratio: var(--plant-map-aspect);
 		font-family: Inter, sans-serif;
 	}
 
@@ -217,10 +249,10 @@
 		}
 	}
 
-	@media (max-width: 980px) {
-	.plant-map-frame {
-		max-width: 100%;
-	}
+	@media (max-width: 999.98px) {
+		.plant-map-frame {
+			max-width: 100%;
+		}
 	}
 
 	@media (prefers-reduced-motion: reduce) {
