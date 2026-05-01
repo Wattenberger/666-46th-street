@@ -380,8 +380,7 @@
 
 <section class="neighborhood-map-section" aria-labelledby="neighborhood-map-title">
 	<div class="neighborhood-map-copy">
-		<p id="neighborhood-map-title" class="neighborhood-map-kicker">of many more!</p>
-		<p id="neighborhood-map-title" class="neighborhood-map-kicker">of many more!</p>
+		<p id="neighborhood-map-title" class="neighborhood-map-kicker">Our favorites in the neighborhood (of many more!)</p>
 	</div>
 
 	<div

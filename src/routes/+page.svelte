@@ -237,6 +237,6 @@
 		</aside>
 	</section>
 
-		<PlantMap />
-		<NeighborhoodMap />
+	<NeighborhoodMap />
+	<PlantMap />
 </main>
