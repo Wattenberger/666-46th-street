@@ -230,7 +230,7 @@
 
 				<div>
 					<!-- <dt>Open House</dt> -->
-					<dd>Come by this Saturday and Sunday</dd>
+					<dd><span class="optional">Come by this </span>Saturday and Sunday</dd>
 					<dd>2 – 4:30 PM</dd>
 				</div>
 			</dl>

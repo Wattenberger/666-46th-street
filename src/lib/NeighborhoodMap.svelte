@@ -397,8 +397,8 @@
 			<img
 				src={mapPath}
 				alt="Neighborhood map near 666 46th St"
-				width="1664"
-				height="1156"
+				width="1662"
+				height="1142"
 				loading="lazy"
 				decoding="async"
 			/>
@@ -445,7 +445,6 @@
 
 	.neighborhood-map-frame {
 		position: relative;
-		aspect-ratio: 1664 / 1156;
 		overflow: hidden;
 		/* background: #fbfaf7; */
 		/* box-shadow: 0 2rem 5rem rgb(0 0 0 / 0.2); */
@@ -456,6 +455,7 @@
 		display: block;
 		width: 100%;
 		height: auto;
+		aspect-ratio: 1662 / 1142;
 		font-family: Inter, sans-serif;
 	}
 
@@ -558,7 +558,7 @@
 		}
 
 		.neighborhood-map-frame {
-			min-height: calc(56rem * 1156 / 1664);
+			min-height: calc(56rem * 1142 / 1662);
 			overflow-x: auto;
 		}
 
